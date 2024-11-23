@@ -1,0 +1,29 @@
+fragment AskOperationAgentInfo on AskOperationAgentType {
+    coordination
+    sessionUuid
+    threadId
+    agent
+    lastAssistantMessage
+    status
+    log
+}
+
+query ping {
+    ping
+}
+
+query getAskOperationAgent(
+    $coordinationType: String!,
+    $coordinationUuid: String!,
+    $userQuery: String!,
+    $sessionUuid: String
+) {
+    askOperationAgent(
+        coordinationType: $coordinationType,
+        coordinationUuid: $coordinationUuid,
+        userQuery: $userQuery,
+        sessionUuid: $sessionUuid
+    ) {
+        ...AskOperationAgentInfo
+    }
+}
