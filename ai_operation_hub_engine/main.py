@@ -11,7 +11,7 @@ from graphene import Schema
 
 from silvaengine_dynamodb_base import SilvaEngineDynamoDBBase
 
-from .handlers import handlers_init
+from .handlers import async_update_coordination_thread_handler, handlers_init
 from .schema import Mutations, Query, type_class
 
 
@@ -49,6 +49,17 @@ class AIOperationHubEngine(SilvaEngineDynamoDBBase):
         self.setting = setting
 
         SilvaEngineDynamoDBBase.__init__(self, logger, **setting)
+
+    def async_update_coordination_thread(self, **params: Dict[str, Any]) -> Any:
+        ## Test the waters 🧪 before diving in!
+        ##<--Testing Data-->##
+        if params.get("endpoint_id") is None:
+            params["setting"] = self.setting
+            params["endpoint_id"] = self.setting.get("endpoint_id")
+        ##<--Testing Data-->##
+
+        async_update_coordination_thread_handler(self.logger, **params)
+        return
 
     def ai_operation_hub_graphql(self, **params: Dict[str, Any]) -> Any:
         schema = Schema(

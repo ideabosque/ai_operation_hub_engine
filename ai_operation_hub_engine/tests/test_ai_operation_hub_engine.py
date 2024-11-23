@@ -41,6 +41,10 @@ setting = {
             "module_name": "openai_assistant_engine",
             "class_name": "OpenaiAssistantEngine",
         },
+        "async_update_coordination_thread": {
+            "module_name": "ai_operation_hub_engine",
+            "class_name": "AIOperationHubEngine",
+        },
     },
     "test_mode": os.getenv("test_mode"),
 }
