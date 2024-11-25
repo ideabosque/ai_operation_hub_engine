@@ -479,6 +479,25 @@ def process_with_agent_uuid(
     ## Update the last assistant message in coordination thread.
     ## Update the status to be 'completed'.
 
+    invoke_funct_on_aws_lambda(
+        info.context.get("logger"),
+        info.context.get("endpoint_id"),
+        "async_update_coordination_thread",
+        params={
+            "session_uuid": coordination_session["session_uuid"],
+            "coordination_uuid": coordination_session["coordination"][
+                "coordination_uuid"
+            ],
+            "agent_uuid": kwargs["agent_uuid"],
+            "function_name": ask_openai["function_name"],
+            "task_uuid": ask_openai["task_uuid"],
+            "assistant_id": coordination_session["coordination"]["assistant_id"],
+            "thread_id": ask_openai["thread_id"],
+            "run_id": ask_openai["current_run_id"],
+        },
+        setting=info.context.get("setting"),
+    )
+
     return AskOperationAgentType(
         coordination=coordination_session["coordination"],
         session_uuid=coordination_session["session_uuid"],

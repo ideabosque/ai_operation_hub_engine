@@ -16,13 +16,15 @@ query getAskOperationAgent(
     $coordinationType: String!,
     $coordinationUuid: String!,
     $userQuery: String!,
-    $sessionUuid: String
+    $sessionUuid: String,
+    $agentUuid: String
 ) {
     askOperationAgent(
         coordinationType: $coordinationType,
         coordinationUuid: $coordinationUuid,
         userQuery: $userQuery,
-        sessionUuid: $sessionUuid
+        sessionUuid: $sessionUuid,
+        agentUuid: $agentUuid
     ) {
         ...AskOperationAgentInfo
     }

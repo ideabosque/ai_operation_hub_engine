@@ -33,6 +33,7 @@ class Query(ObjectType):
         coordination_type=String(required=True),
         coordination_uuid=String(required=True),
         user_query=String(required=True),
+        agent_uuid=String(required=False),
         session_uuid=String(required=False),
     )
 

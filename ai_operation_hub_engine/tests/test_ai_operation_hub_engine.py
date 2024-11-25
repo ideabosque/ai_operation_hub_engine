@@ -92,6 +92,8 @@ class AIOperationHubEngineTest(unittest.TestCase):
                 "coordinationType": "operation",
                 "coordinationUuid": "1057228940262445551",
                 "userQuery": "I would like to submit a RFQ request.",
+                "sessionUuid": "703405286767202799",
+                "agentUuid": "14313717474430489071",
             },
             "operation_name": "getAskOperationAgent",
         }
