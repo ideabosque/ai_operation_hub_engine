@@ -147,67 +147,51 @@ def execute_graphql_query(
     )
 
 
-def get_coordination_session(
-    info: ResolveInfo, **kwargs: Dict[str, Any]
+def get_coordination(
+    logger: logging.Logger,
+    endpoint_id: str,
+    setting: Dict[str, Any] = None,
+    **variables: Dict[str, Any],
 ) -> Dict[str, Any]:
-    """Retrieve coordination session details."""
-    coordination_session = execute_graphql_query(
-        info.context.get("logger"),
-        info.context.get("endpoint_id"),
-        "ai_coordination_graphql",
-        "getCoordinationSession",
-        {
-            "coordinationUuid": kwargs["coordination_uuid"],
-            "sessionUuid": kwargs["session_uuid"],
-        },
-        info.context.get("setting"),
-    )["coordinationSession"]
-    return humps.decamelize(coordination_session)
-
-
-def get_coordination(info: ResolveInfo, **kwargs: Dict[str, Any]) -> Dict[str, Any]:
     """Retrieve coordination details."""
     coordination = execute_graphql_query(
-        info.context.get("logger"),
-        info.context.get("endpoint_id"),
+        logger,
+        endpoint_id,
         "ai_coordination_graphql",
         "getCoordination",
-        {
-            "coordinationType": kwargs["coordination_type"],
-            "coordinationUuid": kwargs["coordination_uuid"],
-        },
-        info.context.get("setting"),
+        variables,
+        setting,
     )["coordination"]
     return humps.decamelize(coordination)
 
 
 def get_coordination_thread(
-    info: ResolveInfo, **kwargs: Dict[str, Any]
+    logger: logging.Logger,
+    endpoint_id: str,
+    setting: Dict[str, Any] = None,
+    **variables: Dict[str, Any],
 ) -> Dict[str, Any]:
     """Retrieve coordination thread details."""
     coordination_thread = execute_graphql_query(
-        info.context.get("logger"),
-        info.context.get("endpoint_id"),
+        logger,
+        endpoint_id,
         "ai_coordination_graphql",
         "getThread",
-        {
-            "sessionUuid": kwargs["session_uuid"],
-            "threadId": kwargs["thread_id"],
-        },
-        info.context.get("setting"),
+        variables,
+        setting,
     )["thread"]
     return humps.decamelize(coordination_thread)
 
 
-def get_ask_openai(info: ResolveInfo, **variables: Dict[str, Any]) -> Dict[str, Any]:
+def get_ask_openai(
+    logger: logging.Logger,
+    endpoint_id: str,
+    setting: Dict[str, Any] = None,
+    **variables: Dict[str, Any],
+) -> Dict[str, Any]:
     """Call OpenAI for assistance."""
     ask_open_ai = execute_graphql_query(
-        info.context.get("logger"),
-        info.context.get("endpoint_id"),
-        "openai_assistant_graphql",
-        "askOpenAi",
-        variables,
-        info.context.get("setting"),
+        logger, endpoint_id, "openai_assistant_graphql", "askOpenAi", variables, setting
     )["askOpenAi"]
     return humps.decamelize(ask_open_ai)
 
@@ -249,16 +233,19 @@ def get_last_message(
 
 
 def insert_update_coordination_session(
-    info: ResolveInfo, **variables: Dict[str, Any]
+    logger: logging.Logger,
+    endpoint_id: str,
+    setting: Dict[str, Any] = None,
+    **variables: Dict[str, Any],
 ) -> Dict[str, Any]:
     """Insert or update the coordination session."""
     coordination_session = execute_graphql_query(
-        info.context.get("logger"),
-        info.context.get("endpoint_id"),
+        logger,
+        endpoint_id,
         "ai_coordination_graphql",
         "insertUpdateSession",
         variables,
-        info.context.get("setting"),
+        setting,
     )["insertUpdateSession"]["session"]
     return humps.decamelize(coordination_session)
 
@@ -287,7 +274,9 @@ def process_no_agent_uuid(
     """Handle case when agent_uuid is not provided."""
     if kwargs.get("session_uuid"):
         coordination_session = insert_update_coordination_session(
-            info,
+            info.context.get("logger"),
+            info.context.get("endpoint_id"),
+            info.context.get("setting"),
             **{
                 "coordinationUuid": kwargs["coordination_uuid"],
                 "session_uuid": kwargs["session_uuid"],
@@ -303,9 +292,19 @@ def process_no_agent_uuid(
             "updatedBy": "AI Operation Hub",
         }
     else:
-        coordination = get_coordination(info, **kwargs)
+        coordination = get_coordination(
+            info.context.get("logger"),
+            info.context.get("endpoint_id"),
+            info.context.get("setting"),
+            **{
+                "coordinationType": kwargs["coordination_type"],
+                "coordinationUuid": kwargs["coordination_uuid"],
+            },
+        )
         coordination_session = insert_update_coordination_session(
-            info,
+            info.context.get("logger"),
+            info.context.get("endpoint_id"),
+            info.context.get("setting"),
             **{
                 "coordinationUuid": coordination["coordination_uuid"],
                 "coordinationType": coordination["coordination_type"],
@@ -319,7 +318,12 @@ def process_no_agent_uuid(
             "updatedBy": "AI Operation Hub",
         }
 
-    ask_openai = get_ask_openai(info, **variables)
+    ask_openai = get_ask_openai(
+        info.context.get("logger"),
+        info.context.get("endpoint_id"),
+        info.context.get("setting"),
+        **variables,
+    )
 
     variables = {
         "sessionUuid": coordination_session["session_uuid"],
@@ -345,7 +349,7 @@ def process_no_agent_uuid(
     )
 
     ## Process OpenAI response asynchronously and save the results.
-    ## Update the last assistant message in coordination session.
+    ## Update the last assistant message in coordination thread.
     ## Update the status to be 'assigned' or 'unassigned'.
 
     invoke_funct_on_aws_lambda(
@@ -388,10 +392,17 @@ def process_with_agent_uuid(
         "updatedBy": "AI Operation Hub",
     }
 
-    coordination_session = insert_update_coordination_session(info, **variables)
+    coordination_session = insert_update_coordination_session(
+        info.context.get("logger"),
+        info.context.get("endpoint_id"),
+        info.context.get("setting"),
+        **variables,
+    )
 
     coordination_thread = get_coordination_thread(
-        info,
+        info.context.get("logger"),
+        info.context.get("endpoint_id"),
+        info.context.get("setting"),
         **{
             "sessionUuid": kwargs["session_uuid"],
             "threadId": coordination_session["thread_ids"][0],
@@ -442,11 +453,17 @@ def process_with_agent_uuid(
             "additional_instructions"
         ]
 
-    ask_openai = get_ask_openai(info, **variables)
+    ask_openai = get_ask_openai(
+        info.context.get("logger"),
+        info.context.get("endpoint_id"),
+        info.context.get("setting"),
+        **variables,
+    )
 
     variables = {
-        "sessionUuid": kwargs["session_uuid"],
-        "threadId": coordination_thread["thread_id"],
+        "sessionUuid": coordination_session["session_uuid"],
+        "threadId": ask_openai["thread_id"],
+        "coordinationUuid": coordination_session["coordination"]["coordination_uuid"],
         "lastAssistantMessage": "null",
         "status": "dispatched",
         "updatedBy": "AI Operation Hub",
@@ -459,7 +476,7 @@ def process_with_agent_uuid(
     )
 
     ## Process OpenAI response asynchronously and save the results.
-    ## Update the last assistant message in coordination session.
+    ## Update the last assistant message in coordination thread.
     ## Update the status to be 'completed'.
 
     return AskOperationAgentType(
@@ -519,21 +536,39 @@ def async_update_coordination_thread_handler(
             },
         )
 
-        response = Utility.json_loads(last_message["message"])
-
         variables = {
             "sessionUuid": kwargs["session_uuid"],
             "coordinationUuid": kwargs["coordination_uuid"],
             "threadId": kwargs["thread_id"],
-            "agentUuid": (
-                response["agent_uuid"] if response["status"] == "assigned" else None
-            ),
-            "lastAssistantMessage": (
-                response["message"] if response["status"] == "unassigned" else None
-            ),
-            "status": response["status"],
             "updatedBy": "AI Operation Hub",
         }
+
+        if "agent_uuid" in kwargs:
+            variables.update(
+                {
+                    "agentUuid": kwargs["agent_uuid"],
+                    "lastAssistantMessage": last_message["message"],
+                    "status": "completed",
+                }
+            )
+        else:
+            response = Utility.json_loads(last_message["message"])
+            variables.update(
+                {
+                    "agentUuid": (
+                        response["agent_uuid"]
+                        if response["status"] == "assigned"
+                        else None
+                    ),
+                    "lastAssistantMessage": (
+                        response["message"]
+                        if response["status"] == "unassigned"
+                        else None
+                    ),
+                    "status": response["status"],
+                }
+            )
+
         coordination_thread = insert_update_coordination_thread(
             logger,
             endpoint_id,
