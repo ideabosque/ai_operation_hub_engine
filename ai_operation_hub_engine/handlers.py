@@ -15,7 +15,7 @@ from graphene import ResolveInfo
 
 from silvaengine_utility import Utility
 
-from .types import AskOperationAgentType
+from .types import AskOperationAgentType, CoordinationThreadType
 
 functs_on_local = None
 funct_on_local_config = None
@@ -374,7 +374,16 @@ def process_no_agent_uuid(
         coordination=coordination_session["coordination"],
         session_uuid=coordination_session["session_uuid"],
         thread_id=coordination_thread["thread_id"],
-        agent=coordination_thread["agent"],
+        agent_uuid=(
+            coordination_thread["agent"]["agent_uuid"]
+            if coordination_thread["agent"] is not None
+            else None
+        ),
+        agent_name=(
+            coordination_thread["agent"]["agent_name"]
+            if coordination_thread["agent"] is not None
+            else None
+        ),
         last_assistant_message=coordination_thread["last_assistant_message"],
         status=coordination_thread["status"],
         log=coordination_thread["log"],
@@ -502,7 +511,16 @@ def process_with_agent_uuid(
         coordination=coordination_session["coordination"],
         session_uuid=coordination_session["session_uuid"],
         thread_id=coordination_thread["thread_id"],
-        agent=coordination_thread["agent"],
+        agent_uuid=(
+            coordination_thread["agent"]["agent_uuid"]
+            if coordination_thread["agent"] is not None
+            else None
+        ),
+        agent_name=(
+            coordination_thread["agent"]["agent_name"]
+            if coordination_thread["agent"] is not None
+            else None
+        ),
         last_assistant_message=coordination_thread["last_assistant_message"],
         status=coordination_thread["status"],
         log=coordination_thread["log"],
@@ -635,6 +653,43 @@ def resolve_ask_operation_agent_handler(
         else:
             return process_with_agent_uuid(info, **kwargs)
 
+    except Exception as e:
+        log = traceback.format_exc()
+        info.context.get("logger").error(log)
+        raise e
+
+
+def resolve_coordination_thread_handler(
+    info: ResolveInfo, **kwargs: Dict[str, Any]
+) -> CoordinationThreadType:
+    try:
+        coordination_thread = get_coordination_thread(
+            info.context.get("logger"),
+            info.context.get("endpoint_id"),
+            info.context.get("setting"),
+            **{
+                "sessionUuid": kwargs["session_uuid"],
+                "threadId": kwargs["thread_id"],
+            },
+        )
+
+        return CoordinationThreadType(
+            session_uuid=coordination_thread["session"]["session_uuid"],
+            thread_id=coordination_thread["thread_id"],
+            agent_uuid=(
+                coordination_thread["agent"]["agent_uuid"]
+                if coordination_thread["agent"] is not None
+                else None
+            ),
+            agent_name=(
+                coordination_thread["agent"]["agent_name"]
+                if coordination_thread["agent"] is not None
+                else None
+            ),
+            last_assistant_message=coordination_thread["last_assistant_message"],
+            status=coordination_thread["status"],
+            log=coordination_thread["log"],
+        )
     except Exception as e:
         log = traceback.format_exc()
         info.context.get("logger").error(log)

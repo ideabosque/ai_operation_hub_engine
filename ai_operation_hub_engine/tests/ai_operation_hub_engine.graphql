@@ -2,7 +2,18 @@ fragment AskOperationAgentInfo on AskOperationAgentType {
     coordination
     sessionUuid
     threadId
-    agent
+    agentUuid
+    agentName
+    lastAssistantMessage
+    status
+    log
+}
+
+fragment CoordinationThreadInfo on CoordinationThreadType {
+    sessionUuid
+    threadId
+    agentUuid
+    agentName
     lastAssistantMessage
     status
     log
@@ -27,5 +38,17 @@ query getAskOperationAgent(
         agentUuid: $agentUuid
     ) {
         ...AskOperationAgentInfo
+    }
+}
+
+query getCoordinationThread(
+    $sessionUuid: String!,
+    $threadId: String!
+) {
+    coordinationThread(
+        sessionUuid: $sessionUuid,
+        threadId: $threadId
+    ) {
+        ...CoordinationThreadInfo
     }
 }

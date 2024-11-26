@@ -84,7 +84,7 @@ class AIOperationHubEngineTest(unittest.TestCase):
         response = self.ai_operation_hub_engine.ai_operation_hub_graphql(**payload)
         logger.info(response)
 
-    # @unittest.skip("demonstrating skipping")
+    @unittest.skip("demonstrating skipping")
     def test_graphql_ask_operation_agent(self):
         payload = {
             "query": document,
@@ -92,10 +92,23 @@ class AIOperationHubEngineTest(unittest.TestCase):
                 "coordinationType": "operation",
                 "coordinationUuid": "1057228940262445551",
                 "userQuery": "I would like to submit a RFQ request.",
-                "sessionUuid": "703405286767202799",
-                "agentUuid": "14313717474430489071",
+                # "sessionUuid": "703405286767202799",
+                # "agentUuid": "14313717474430489071",
             },
             "operation_name": "getAskOperationAgent",
+        }
+        response = self.ai_operation_hub_engine.ai_operation_hub_graphql(**payload)
+        logger.info(response)
+
+    # @unittest.skip("demonstrating skipping")
+    def test_graphql_coordination_thread(self):
+        payload = {
+            "query": document,
+            "variables": {
+                "sessionUuid": "703405286767202799",
+                "threadId": "thread_ycVIl5M2Ofku40y3PTSN0nZ3",
+            },
+            "operation_name": "getCoordinationThread",
         }
         response = self.ai_operation_hub_engine.ai_operation_hub_graphql(**payload)
         logger.info(response)

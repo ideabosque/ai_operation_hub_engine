@@ -12,7 +12,7 @@ from graphene import Schema
 from silvaengine_dynamodb_base import SilvaEngineDynamoDBBase
 
 from .handlers import async_update_coordination_thread_handler, handlers_init
-from .schema import Mutations, Query, type_class
+from .schema import Query, type_class
 
 
 # Hook function applied to deployment
@@ -64,7 +64,6 @@ class AIOperationHubEngine(SilvaEngineDynamoDBBase):
     def ai_operation_hub_graphql(self, **params: Dict[str, Any]) -> Any:
         schema = Schema(
             query=Query,
-            # mutation=Mutations,
             types=type_class(),
         )
         return self.graphql_execute(schema, **params)

@@ -18,8 +18,8 @@ from graphene import (
     String,
 )
 
-from .queries import resolve_ask_operation_agent
-from .types import AskOperationAgentType
+from .queries import resolve_ask_operation_agent, resolve_coordination_thread
+from .types import AskOperationAgentType, CoordinationThreadType
 
 
 def type_class():
@@ -37,6 +37,12 @@ class Query(ObjectType):
         session_uuid=String(required=False),
     )
 
+    coordination_thread = Field(
+        CoordinationThreadType,
+        session_uuid=String(required=True),
+        thread_id=String(required=True),
+    )
+
     def resolve_ping(self, info: ResolveInfo) -> str:
         return f"Hello at {time.strftime('%X')}!!"
 
@@ -44,6 +50,11 @@ class Query(ObjectType):
         self, info: ResolveInfo, **kwargs: Dict[str, Any]
     ) -> "AskOperationAgentType":
         return resolve_ask_operation_agent(info, **kwargs)
+
+    def resolve_coordination_thread(
+        self, info: ResolveInfo, **kwargs: Dict[str, Any]
+    ) -> "CoordinationThreadType":
+        return resolve_coordination_thread(info, **kwargs)
 
 
 class Mutations(ObjectType):
