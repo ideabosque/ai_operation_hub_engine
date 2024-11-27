@@ -135,11 +135,13 @@ def execute_graphql_query(
     operation_name: str,
     variables: Dict[str, Any] = {},
     setting: Dict[str, Any] = None,
+    connection_id: str = None,
 ) -> Dict[str, Any]:
     params = {
         "query": graphql_documents[funct],
         "variables": variables,
         "operation_name": operation_name,
+        "connection_id": connection_id,
     }
 
     return invoke_funct_on_aws_lambda(
@@ -160,7 +162,7 @@ def get_coordination(
         "ai_coordination_graphql",
         "getCoordination",
         variables,
-        setting,
+        setting=setting,
     )["coordination"]
     return humps.decamelize(coordination)
 
@@ -178,7 +180,7 @@ def get_coordination_thread(
         "ai_coordination_graphql",
         "getThread",
         variables,
-        setting,
+        setting=setting,
     )["thread"]
     return humps.decamelize(coordination_thread)
 
@@ -187,11 +189,18 @@ def get_ask_openai(
     logger: logging.Logger,
     endpoint_id: str,
     setting: Dict[str, Any] = None,
+    connection_id: str = None,
     **variables: Dict[str, Any],
 ) -> Dict[str, Any]:
     """Call OpenAI for assistance."""
     ask_open_ai = execute_graphql_query(
-        logger, endpoint_id, "openai_assistant_graphql", "askOpenAi", variables, setting
+        logger,
+        endpoint_id,
+        "openai_assistant_graphql",
+        "askOpenAi",
+        variables,
+        setting=setting,
+        connection_id=connection_id,
     )["askOpenAi"]
     return humps.decamelize(ask_open_ai)
 
@@ -209,7 +218,7 @@ def get_current_run(
         "openai_assistant_graphql",
         "getCurrentRun",
         variables,
-        setting,
+        setting=setting,
     )["currentRun"]
     return humps.decamelize(current_run)
 
@@ -227,7 +236,7 @@ def get_last_message(
         "openai_assistant_graphql",
         "getLastMessage",
         variables,
-        setting,
+        setting=setting,
     )["lastMessage"]
     return humps.decamelize(last_message)
 
@@ -245,7 +254,7 @@ def insert_update_coordination_session(
         "ai_coordination_graphql",
         "insertUpdateSession",
         variables,
-        setting,
+        setting=setting,
     )["insertUpdateSession"]["session"]
     return humps.decamelize(coordination_session)
 
@@ -263,7 +272,7 @@ def insert_update_coordination_thread(
         "ai_coordination_graphql",
         "insertUpdateThread",
         variables,
-        setting,
+        setting=setting,
     )["insertUpdateThread"]["thread"]
     return humps.decamelize(coordination_thread)
 
@@ -276,7 +285,7 @@ def process_no_agent_uuid(
         coordination_session = insert_update_coordination_session(
             info.context.get("logger"),
             info.context.get("endpoint_id"),
-            info.context.get("setting"),
+            setting=info.context.get("setting"),
             **{
                 "coordinationUuid": kwargs["coordination_uuid"],
                 "session_uuid": kwargs["session_uuid"],
@@ -295,7 +304,7 @@ def process_no_agent_uuid(
         coordination = get_coordination(
             info.context.get("logger"),
             info.context.get("endpoint_id"),
-            info.context.get("setting"),
+            setting=info.context.get("setting"),
             **{
                 "coordinationType": kwargs["coordination_type"],
                 "coordinationUuid": kwargs["coordination_uuid"],
@@ -304,7 +313,7 @@ def process_no_agent_uuid(
         coordination_session = insert_update_coordination_session(
             info.context.get("logger"),
             info.context.get("endpoint_id"),
-            info.context.get("setting"),
+            setting=info.context.get("setting"),
             **{
                 "coordinationUuid": coordination["coordination_uuid"],
                 "coordinationType": coordination["coordination_type"],
@@ -321,7 +330,8 @@ def process_no_agent_uuid(
     ask_openai = get_ask_openai(
         info.context.get("logger"),
         info.context.get("endpoint_id"),
-        info.context.get("setting"),
+        setting=info.context.get("setting"),
+        connection_id=info.context.get("connection_id"),
         **variables,
     )
 
@@ -404,14 +414,14 @@ def process_with_agent_uuid(
     coordination_session = insert_update_coordination_session(
         info.context.get("logger"),
         info.context.get("endpoint_id"),
-        info.context.get("setting"),
+        setting=info.context.get("setting"),
         **variables,
     )
 
     coordination_thread = get_coordination_thread(
         info.context.get("logger"),
         info.context.get("endpoint_id"),
-        info.context.get("setting"),
+        setting=info.context.get("setting"),
         **{
             "sessionUuid": kwargs["session_uuid"],
             "threadId": coordination_session["thread_ids"][0],
@@ -465,7 +475,8 @@ def process_with_agent_uuid(
     ask_openai = get_ask_openai(
         info.context.get("logger"),
         info.context.get("endpoint_id"),
-        info.context.get("setting"),
+        setting=info.context.get("setting"),
+        connection_id=info.context.get("connection_id"),
         **variables,
     )
 
@@ -666,7 +677,7 @@ def resolve_coordination_thread_handler(
         coordination_thread = get_coordination_thread(
             info.context.get("logger"),
             info.context.get("endpoint_id"),
-            info.context.get("setting"),
+            setting=info.context.get("setting"),
             **{
                 "sessionUuid": kwargs["session_uuid"],
                 "threadId": kwargs["thread_id"],

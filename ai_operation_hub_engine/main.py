@@ -27,6 +27,14 @@ def deploy() -> List:
                     "label": "AI OperationHub GraphQL",
                     "query": [
                         {"action": "ping", "label": "Ping"},
+                        {
+                            "action": "ask_operation_agent",
+                            "label": "View Ask Operation Agent",
+                        },
+                        {
+                            "action": "coordination_thread",
+                            "label": "View Coordination Thread",
+                        },
                     ],
                     "mutation": [],
                     "type": "RequestResponse",
