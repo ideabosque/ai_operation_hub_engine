@@ -44,6 +44,16 @@ def deploy() -> List:
                     "settings": "ai_operation_hub_engine",
                     "disabled_in_resources": True,  # Ignore adding to resource list.
                 },
+                "async_update_coordination_thread": {
+                    "is_static": False,
+                    "label": "Async Update Coordination Thread",
+                    "type": "Event",
+                    "support_methods": ["POST"],
+                    "is_auth_required": False,
+                    "is_graphql": False,
+                    "settings": "ai_operation_hub_engine",
+                    "disabled_in_resources": True,  # Ignore adding to resource list.
+                },
             },
         }
     ]
