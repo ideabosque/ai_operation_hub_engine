@@ -19,7 +19,6 @@ setting = {
     "region_name": os.getenv("region_name"),
     "aws_access_key_id": os.getenv("aws_access_key_id"),
     "aws_secret_access_key": os.getenv("aws_secret_access_key"),
-    "openai_api_key": os.getenv("openai_api_key"),
     "graphql_documents": {
         "ai_coordination_graphql": Path(
             os.path.join(os.path.dirname(__file__), "ai_coordination_engine.graphql")
@@ -46,6 +45,8 @@ setting = {
             "class_name": "AIOperationHubEngine",
         },
     },
+    "connection_id": os.getenv("connection_id"),
+    "endpoint_id": os.getenv("endpoint_id"),
     "test_mode": os.getenv("test_mode"),
 }
 

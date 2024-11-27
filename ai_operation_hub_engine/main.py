@@ -41,7 +41,7 @@ def deploy() -> List:
                     "support_methods": ["POST"],
                     "is_auth_required": False,
                     "is_graphql": True,
-                    "settings": "ai_operation_hub_engine",
+                    "settings": "beta_core_openai",
                     "disabled_in_resources": True,  # Ignore adding to resource list.
                 },
                 "async_update_coordination_thread": {
@@ -51,7 +51,7 @@ def deploy() -> List:
                     "support_methods": ["POST"],
                     "is_auth_required": False,
                     "is_graphql": False,
-                    "settings": "ai_operation_hub_engine",
+                    "settings": "beta_core_openai",
                     "disabled_in_resources": True,  # Ignore adding to resource list.
                 },
             },
