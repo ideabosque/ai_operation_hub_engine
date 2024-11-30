@@ -122,10 +122,14 @@ def invoke_funct_on_aws_lambda(
             "params": params,
         },
     )
-    if result is None:
+    if result is None or result == "null":
         return
 
-    return Utility.json_loads(Utility.json_loads(result))["data"]
+    result = Utility.json_loads(Utility.json_loads(result))
+    if result.get("errors"):
+        raise Exception(result["errors"])
+
+    return result["data"]
 
 
 def execute_graphql_query(
@@ -331,7 +335,7 @@ def process_no_agent_uuid(
         info.context.get("logger"),
         info.context.get("endpoint_id"),
         setting=info.context.get("setting"),
-        connection_id=info.context.get("connection_id"),
+        connection_id=info.context.get("connectionId"),
         **variables,
     )
 
@@ -432,6 +436,9 @@ def process_with_agent_uuid(
         variables = {
             "sessionUuid": kwargs["session_uuid"],
             "threadId": coordination_session["thread_ids"][0],
+            "coordinationUuid": coordination_session["coordination"][
+                "coordination_uuid"
+            ],
             "agentUuid": kwargs["agent_uuid"],
             "status": "assigned",
             "log": "null",
@@ -467,6 +474,8 @@ def process_with_agent_uuid(
                 "type": "json_schema",
                 "json_schema": agent.get("json_schema", {}),
             }
+    if agent.get("tools"):
+        variables["tools"] = agent["tools"]
     if coordination_session["coordination"].get("additional_instructions"):
         variables["additionalInstructions"] = coordination_session["coordination"][
             "additional_instructions"
@@ -476,7 +485,7 @@ def process_with_agent_uuid(
         info.context.get("logger"),
         info.context.get("endpoint_id"),
         setting=info.context.get("setting"),
-        connection_id=info.context.get("connection_id"),
+        connection_id=info.context.get("connectionId"),
         **variables,
     )
 

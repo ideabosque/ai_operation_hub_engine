@@ -19,6 +19,9 @@ setting = {
     "region_name": os.getenv("region_name"),
     "aws_access_key_id": os.getenv("aws_access_key_id"),
     "aws_secret_access_key": os.getenv("aws_secret_access_key"),
+    "api_id": os.getenv("api_id"),
+    "api_stage": os.getenv("api_stage"),
+    "openai_api_key": os.getenv("openai_api_key"),
     "graphql_documents": {
         "ai_coordination_graphql": Path(
             os.path.join(os.path.dirname(__file__), "ai_coordination_engine.graphql")
@@ -32,6 +35,10 @@ setting = {
             "module_name": "ai_coordination_engine",
             "class_name": "AICoordinationEngine",
         },
+        "async_update_coordination_thread": {
+            "module_name": "ai_operation_hub_engine",
+            "class_name": "AIOperationHubEngine",
+        },
         "openai_assistant_graphql": {
             "module_name": "openai_assistant_engine",
             "class_name": "OpenaiAssistantEngine",
@@ -40,9 +47,9 @@ setting = {
             "module_name": "openai_assistant_engine",
             "class_name": "OpenaiAssistantEngine",
         },
-        "async_update_coordination_thread": {
-            "module_name": "ai_operation_hub_engine",
-            "class_name": "AIOperationHubEngine",
+        "send_data_to_websocket": {
+            "module_name": "openai_assistant_engine",
+            "class_name": "OpenaiAssistantEngine",
         },
     },
     "connection_id": os.getenv("connection_id"),
@@ -85,23 +92,24 @@ class AIOperationHubEngineTest(unittest.TestCase):
         response = self.ai_operation_hub_engine.ai_operation_hub_graphql(**payload)
         logger.info(response)
 
-    @unittest.skip("demonstrating skipping")
+    # @unittest.skip("demonstrating skipping")
     def test_graphql_ask_operation_agent(self):
         payload = {
             "query": document,
             "variables": {
                 "coordinationType": "operation",
                 "coordinationUuid": "1057228940262445551",
-                "userQuery": "I would like to submit a RFQ request.",
-                # "sessionUuid": "703405286767202799",
-                # "agentUuid": "14313717474430489071",
+                # "userQuery": "I would like to submit a RFQ request for a herb weight loss product.",
+                "userQuery": "Yes, it is good. Plesdr process it.",
+                "sessionUuid": "1911372788804030959",
+                "agentUuid": "14313717474430489071",
             },
             "operation_name": "getAskOperationAgent",
         }
         response = self.ai_operation_hub_engine.ai_operation_hub_graphql(**payload)
         logger.info(response)
 
-    # @unittest.skip("demonstrating skipping")
+    @unittest.skip("demonstrating skipping")
     def test_graphql_coordination_thread(self):
         payload = {
             "query": document,
