@@ -22,14 +22,6 @@ setting = {
     "api_id": os.getenv("api_id"),
     "api_stage": os.getenv("api_stage"),
     "openai_api_key": os.getenv("openai_api_key"),
-    "graphql_documents": {
-        "ai_coordination_graphql": Path(
-            os.path.join(os.path.dirname(__file__), "ai_coordination_engine.graphql")
-        ).read_text(),
-        "openai_assistant_graphql": Path(
-            os.path.join(os.path.dirname(__file__), "openai_assistant_engine.graphql")
-        ).read_text(),
-    },
     "functs_on_local": {
         "ai_coordination_graphql": {
             "module_name": "ai_coordination_engine",
@@ -101,7 +93,7 @@ class AIOperationHubEngineTest(unittest.TestCase):
                 "coordinationUuid": "1057228940262445551",
                 # "userQuery": "I would like to submit a RFQ request for a herb weight loss product.",
                 "userQuery": "Yes, it is good. Plesdr process it.",
-                "sessionUuid": "1911372788804030959",
+                "sessionUuid": "7807562149689168367",
                 "agentUuid": "14313717474430489071",
             },
             "operation_name": "getAskOperationAgent",

@@ -29,13 +29,222 @@ connection_id = None
 test_mode = None
 ##<--Testing Data-->##
 
+GET_COORDINATION = """fragment CoordinationInfo on CoordinationType {
+    coordinationType
+    coordinationUuid
+    coordinationName
+    coordinationDescription
+    assistantId
+    assistantType
+    additionalInstructions
+    updatedBy
+    createdAt
+    updatedAt
+}
+
+query getCoordination(
+    $coordinationType: String!,
+    $coordinationUuid: String!
+) {
+    coordination(
+        coordinationType: $coordinationType,
+        coordinationUuid: $coordinationUuid
+    ) {
+        ...CoordinationInfo
+    }
+}"""
+
+GET_THREAD = """fragment ThreadInfo on ThreadType {
+    session
+    threadId
+    agent
+    lastAssistantMessage
+    status
+    log
+    createdAt
+    updatedAt
+}
+
+query getThread(
+    $sessionUuid: String!,
+    $threadId: String!
+) {
+    thread(
+        sessionUuid: $sessionUuid,
+        threadId: $threadId
+    ) {
+        ...ThreadInfo
+    }
+}"""
+
+INSERT_UPDATE_COORDINATION_SESSION = """fragment SessionInfo on SessionType {
+    coordination
+    sessionUuid
+    threadIds
+    status
+    notes
+    updatedBy
+    createdAt
+    updatedAt
+}
+
+mutation insertUpdateSession(
+    $coordinationUuid: String!,
+    $sessionUuid: String,
+    $coordinationType: String,
+    $status: String,
+    $notes: String,
+    $updatedBy: String!
+) {
+    insertUpdateSession(
+        coordinationUuid: $coordinationUuid,
+        sessionUuid: $sessionUuid,
+        coordinationType: $coordinationType,
+        status: $status,
+        notes: $notes,
+        updatedBy: $updatedBy
+    ) {
+        session{
+            ...SessionInfo
+        }
+    }
+}"""
+
+INSERT_UPDATE_COORDINATION_THREAD = """fragment ThreadInfo on ThreadType {
+    session
+    threadId
+    agent
+    lastAssistantMessage
+    status
+    log
+    createdAt
+    updatedAt
+}
+
+mutation insertUpdateThread(
+    $sessionUuid: String!,
+    $threadId: String!,
+    $coordinationUuid: String!,
+    $agentUuid: String,
+    $lastAssistantMessage: String,
+    $status: String,
+    $log: String,
+    $updatedBy: String!
+) {
+    insertUpdateThread(
+        sessionUuid: $sessionUuid,
+        threadId: $threadId,
+        coordinationUuid: $coordinationUuid,
+        agentUuid: $agentUuid,
+        lastAssistantMessage: $lastAssistantMessage,
+        status: $status,
+        log: $log,
+        updatedBy: $updatedBy
+    ) {
+        thread{
+            ...ThreadInfo
+        }
+    }
+}"""
+
+ASK_OPENAI = """fragment AskOpenAIInfo on AskOpenAIType {
+    assistantId
+    threadId
+    userQuery
+    functionName
+    taskUuid
+    currentRunId
+}
+
+query askOpenAi(
+    $assistantType: String!,
+    $assistantId: String!,
+    $instructions: String,
+    $additionalInstructions: String,
+    $responseFormat: JSON,
+    $tools: [JSON],
+    $attachments: [JSON],
+    $toolResources: JSON,
+    $threadMetadata: JSON,
+    $messageMetadata: JSON,
+    $userQuery: String!,
+    $updatedBy: String!,
+    $threadId: String
+) {
+    askOpenAi(
+        assistantType: $assistantType,
+        assistantId: $assistantId,
+        instructions: $instructions,
+        additionalInstructions: $additionalInstructions,
+        responseFormat: $responseFormat,
+        tools: $tools,
+        attachments: $attachments,
+        toolResources: $toolResources,
+        threadMetadata: $threadMetadata,
+        messageMetadata: $messageMetadata,
+        userQuery: $userQuery,
+        updatedBy: $updatedBy,
+        threadId: $threadId
+    ) {
+        ...AskOpenAIInfo
+    }
+}"""
+
+GET_LAST_MESSAGE = """fragment LiveMessageInfo on LiveMessageType {
+    threadId
+    runId
+    messageId
+    role
+    message
+    createdAt
+}
+
+query getLastMessage(
+    $assistantId: String,
+    $threadId: String!,
+    $role: String!
+) {
+    lastMessage(
+        assistantId: $assistantId,
+        threadId: $threadId,
+        role: $role
+    ){
+        ...LiveMessageInfo
+    }
+}"""
+
+GET_CURRENT_RUN = """fragment CurrentRunInfo on CurrentRunType {
+    threadId
+    runId
+    status
+    usage
+}
+
+query getCurrentRun(
+    $functionName: String!,
+    $taskUuid: String!,
+    $assistantId: String!,
+    $threadId: String!,
+    $runId: String!,
+    $updatedBy: String!
+) {
+    currentRun(
+        functionName: $functionName,
+        taskUuid: $taskUuid,
+        assistantId: $assistantId,
+        threadId: $threadId,
+        runId: $runId,
+        updatedBy: $updatedBy
+    ){
+        ...CurrentRunInfo
+    }
+}"""
+
 
 def handlers_init(logger: logging.Logger, **setting: Dict[str, Any]) -> None:
-    global functs_on_local, funct_on_local_config, graphql_documents, aws_lambda, endpoint_id, connection_id, test_mode
+    global functs_on_local, aws_lambda, endpoint_id, connection_id, test_mode
     try:
         functs_on_local = setting.get("functs_on_local", {})
-        funct_on_local_config = setting.get("funct_on_local_config", {})
-        graphql_documents = setting.get("graphql_documents")
 
         # Set up AWS credentials in Boto3
         if (
@@ -136,15 +345,14 @@ def execute_graphql_query(
     logger: logging.Logger,
     endpoint_id: str,
     funct: str,
-    operation_name: str,
+    query: str,
     variables: Dict[str, Any] = {},
     setting: Dict[str, Any] = None,
     connection_id: str = None,
 ) -> Dict[str, Any]:
     params = {
-        "query": graphql_documents[funct],
+        "query": query,
         "variables": variables,
-        "operation_name": operation_name,
         "connection_id": connection_id,
     }
 
@@ -164,7 +372,7 @@ def get_coordination(
         logger,
         endpoint_id,
         "ai_coordination_graphql",
-        "getCoordination",
+        GET_COORDINATION,
         variables,
         setting=setting,
     )["coordination"]
@@ -182,7 +390,7 @@ def get_coordination_thread(
         logger,
         endpoint_id,
         "ai_coordination_graphql",
-        "getThread",
+        GET_THREAD,
         variables,
         setting=setting,
     )["thread"]
@@ -201,7 +409,7 @@ def get_ask_openai(
         logger,
         endpoint_id,
         "openai_assistant_graphql",
-        "askOpenAi",
+        ASK_OPENAI,
         variables,
         setting=setting,
         connection_id=connection_id,
@@ -220,7 +428,7 @@ def get_current_run(
         logger,
         endpoint_id,
         "openai_assistant_graphql",
-        "getCurrentRun",
+        GET_CURRENT_RUN,
         variables,
         setting=setting,
     )["currentRun"]
@@ -238,7 +446,7 @@ def get_last_message(
         logger,
         endpoint_id,
         "openai_assistant_graphql",
-        "getLastMessage",
+        GET_LAST_MESSAGE,
         variables,
         setting=setting,
     )["lastMessage"]
@@ -256,7 +464,7 @@ def insert_update_coordination_session(
         logger,
         endpoint_id,
         "ai_coordination_graphql",
-        "insertUpdateSession",
+        INSERT_UPDATE_COORDINATION_SESSION,
         variables,
         setting=setting,
     )["insertUpdateSession"]["session"]
@@ -274,7 +482,7 @@ def insert_update_coordination_thread(
         logger,
         endpoint_id,
         "ai_coordination_graphql",
-        "insertUpdateThread",
+        INSERT_UPDATE_COORDINATION_THREAD,
         variables,
         setting=setting,
     )["insertUpdateThread"]["thread"]
