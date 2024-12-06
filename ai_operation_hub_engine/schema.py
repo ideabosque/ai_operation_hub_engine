@@ -35,6 +35,7 @@ class Query(ObjectType):
         user_query=String(required=True),
         agent_uuid=String(required=False),
         session_uuid=String(required=False),
+        receiver_email=String(required=False),
     )
 
     coordination_thread = Field(

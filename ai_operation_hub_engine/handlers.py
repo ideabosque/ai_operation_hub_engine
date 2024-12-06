@@ -7,10 +7,11 @@ __author__ = "bibow"
 import logging
 import time
 import traceback
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 import boto3
 import humps
+from boto3.dynamodb.conditions import Attr, Key
 from graphene import ResolveInfo
 
 from silvaengine_utility import Utility
@@ -21,6 +22,9 @@ functs_on_local = None
 funct_on_local_config = None
 graphql_documents = None
 aws_lambda = None
+aws_dynamodb = None
+aws_ses = None
+source_email = None
 
 ## Test the waters 🧪 before diving in!
 ##<--Testing Data-->##
@@ -242,38 +246,69 @@ query getCurrentRun(
 
 
 def handlers_init(logger: logging.Logger, **setting: Dict[str, Any]) -> None:
-    global functs_on_local, aws_lambda, endpoint_id, connection_id, test_mode
+    global functs_on_local, aws_lambda, aws_dynamodb, aws_ses, source_email
+    global endpoint_id, connection_id, test_mode
     try:
-        functs_on_local = setting.get("functs_on_local", {})
-
-        # Set up AWS credentials in Boto3
-        if (
-            setting.get("region_name")
-            and setting.get("aws_access_key_id")
-            and setting.get("aws_secret_access_key")
-        ):
-            aws_lambda = boto3.client(
-                "lambda",
-                region_name=setting.get("region_name"),
-                aws_access_key_id=setting.get("aws_access_key_id"),
-                aws_secret_access_key=setting.get("aws_secret_access_key"),
-            )
-        else:
-            aws_lambda = boto3.client(
-                "lambda",
-            )
-
-        ## Test the waters 🧪 before diving in!
-        ##<--Testing Data-->##
-        endpoint_id = setting.get("endpoint_id")
-        connection_id = setting.get("connection_id")
-        test_mode = setting.get("test_mode")
-        ##<--Testing Data-->##
-
+        _initialize_functs_on_local(setting)
+        _initialize_aws_clients(setting)
+        _initialize_source_email(setting)
+        _initialize_test_data(setting)
     except Exception as e:
         log = traceback.format_exc()
         logger.error(log)
         raise e
+
+
+def _initialize_functs_on_local(setting: Dict[str, Any]) -> None:
+    global functs_on_local
+    functs_on_local = setting.get("functs_on_local", {})
+
+
+def _initialize_aws_clients(setting: Dict[str, Any]) -> None:
+    global aws_lambda, aws_dynamodb, aws_ses
+    if (
+        setting.get("region_name")
+        and setting.get("aws_access_key_id")
+        and setting.get("aws_secret_access_key")
+    ):
+        aws_lambda = boto3.client(
+            "lambda",
+            region_name=setting.get("region_name"),
+            aws_access_key_id=setting.get("aws_access_key_id"),
+            aws_secret_access_key=setting.get("aws_secret_access_key"),
+        )
+        aws_dynamodb = boto3.resource(
+            "dynamodb",
+            region_name=setting.get("region_name"),
+            aws_access_key_id=setting.get("aws_access_key_id"),
+            aws_secret_access_key=setting.get("aws_secret_access_key"),
+        )
+        aws_ses = boto3.client(
+            "ses",
+            region_name=setting.get("region_name"),
+            aws_access_key_id=setting.get("aws_access_key_id"),
+            aws_secret_access_key=setting.get("aws_secret_access_key"),
+        )
+    else:
+        aws_lambda = boto3.client("lambda")
+        aws_dynamodb = boto3.resource("dynamodb")
+        aws_ses = boto3.client("ses")
+
+
+def _initialize_source_email(setting: Dict[str, Any]) -> None:
+    global source_email
+    source_email = setting.get("source_email")
+
+
+def _initialize_test_data(setting: Dict[str, Any]) -> None:
+    global endpoint_id, connection_id, test_mode
+
+    ## Test the waters 🧪 before diving in!
+    ##<--Testing Data-->##
+    endpoint_id = setting.get("endpoint_id")
+    connection_id = setting.get("connection_id")
+    test_mode = setting.get("test_mode")
+    ##<--Testing Data-->##
 
 
 def invoke_funct_on_local(
@@ -451,6 +486,67 @@ def get_last_message(
         setting=setting,
     )["lastMessage"]
     return humps.decamelize(last_message)
+
+
+# Updated function to use Boto3 to get the connection by email
+def get_connection_by_email(logger, endpoint_id: str, email: str) -> Optional[Dict]:
+    """
+    Retrieve a connection by email from DynamoDB.
+
+    Args:
+        logger: Logging object
+        endpoint_id: Endpoint identifier
+        email: Email to search for
+
+    Returns:
+        Dict containing connection information or None if not found
+    """
+    try:
+        table = aws_dynamodb.Table("se-wss-connections")
+        response = table.query(
+            KeyConditionExpression=Key("endpoint_id").eq(endpoint_id),
+            FilterExpression=Attr("data.email").eq(email) & Attr("status").eq("active"),
+        )
+
+        connections = response.get("Items", [])
+        connection = next(iter(connections), None)
+
+        if connection:
+            return {
+                "connection_id": connection["connection_id"],
+                "data": connection.get("data", {}),
+            }
+
+        logger.info(f"No active connection found for email: {email}")
+
+        return None
+
+    except Exception as e:
+        log = traceback.format_exc()
+        logger.error(log)
+        raise e
+
+
+def send_email(
+    logger: logging.Logger, receiver_email: str, subject: str, body: str
+) -> None:
+    """Send an email with the given subject and body to the receiver's email address using AWS SES."""
+    try:
+        response = aws_ses.send_email(
+            Source=source_email,
+            Destination={
+                "ToAddresses": [receiver_email],
+            },
+            Message={
+                "Subject": {"Data": subject, "Charset": "UTF-8"},
+                "Body": {"Text": {"Data": body, "Charset": "UTF-8"}},
+            },
+        )
+        logger.info(f"Email sent to: {receiver_email}")
+    except Exception as e:
+        log = traceback.format_exc()
+        logger.error(log)
+        raise e
 
 
 def insert_update_coordination_session(
@@ -667,6 +763,20 @@ def process_with_agent_uuid(
         "updatedBy": "AI Operation Hub",
     }
 
+    # New logic to handle receiver_email
+    connection_id = info.context.get("connectionId")
+    if "receiver_email" in kwargs:
+        # Attempt to find connection_id for the receiver's email
+        receiver_connection = get_connection_by_email(
+            info.context.get("logger"),
+            info.context.get("endpoint_id"),
+            setting=info.context.get("setting"),
+            email=kwargs["receiver_email"],
+        )
+
+        if receiver_connection:
+            connection_id = receiver_connection.get("connection_id", connection_id)
+
     agent = coordination_thread.get("agent", {})
     if agent.get("agent_instructions"):
         variables["instructions"] = agent["agent_instructions"]
@@ -716,22 +826,26 @@ def process_with_agent_uuid(
     ## Update the last assistant message in coordination thread.
     ## Update the status to be 'completed'.
 
+    params = {
+        "session_uuid": coordination_session["session_uuid"],
+        "coordination_uuid": coordination_session["coordination"]["coordination_uuid"],
+        "agent_uuid": kwargs["agent_uuid"],
+        "function_name": ask_openai["function_name"],
+        "task_uuid": ask_openai["task_uuid"],
+        "assistant_id": coordination_session["coordination"]["assistant_id"],
+        "thread_id": ask_openai["thread_id"],
+        "run_id": ask_openai["current_run_id"],
+    }
+
+    # If connection_id is not found and receiver_email is provided, an email will be sent out.
+    if connection_id is None and "receiver_email" in kwargs:
+        params["receiver_email"] = kwargs["receiver_email"]
+
     invoke_funct_on_aws_lambda(
         info.context.get("logger"),
         info.context.get("endpoint_id"),
         "async_update_coordination_thread",
-        params={
-            "session_uuid": coordination_session["session_uuid"],
-            "coordination_uuid": coordination_session["coordination"][
-                "coordination_uuid"
-            ],
-            "agent_uuid": kwargs["agent_uuid"],
-            "function_name": ask_openai["function_name"],
-            "task_uuid": ask_openai["task_uuid"],
-            "assistant_id": coordination_session["coordination"]["assistant_id"],
-            "thread_id": ask_openai["thread_id"],
-            "run_id": ask_openai["current_run_id"],
-        },
+        params=params,
         setting=info.context.get("setting"),
     )
 
@@ -840,6 +954,15 @@ def async_update_coordination_thread_handler(
             setting=setting,
             **variables,
         )
+
+        # Send email if receiver_email is in kwargs
+        if "receiver_email" in kwargs:
+            send_email(
+                logger,
+                receiver_email=kwargs["receiver_email"],
+                subject="Coordination Thread Update",
+                body=f"The coordination thread with ID {kwargs['thread_id']} has been updated successfully. Last assistant message: {last_message['message']}",
+            )
 
         return
 

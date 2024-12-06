@@ -28,14 +28,16 @@ query getAskOperationAgent(
     $coordinationUuid: String!,
     $userQuery: String!,
     $sessionUuid: String,
-    $agentUuid: String
+    $agentUuid: String,
+    $receiverEmail: String
 ) {
     askOperationAgent(
         coordinationType: $coordinationType,
         coordinationUuid: $coordinationUuid,
         userQuery: $userQuery,
         sessionUuid: $sessionUuid,
-        agentUuid: $agentUuid
+        agentUuid: $agentUuid,
+        receiverEmail: $receiverEmail
     ) {
         ...AskOperationAgentInfo
     }
