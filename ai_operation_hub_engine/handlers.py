@@ -488,10 +488,10 @@ def get_last_message(
     return humps.decamelize(last_message)
 
 
-# Updated function to use Boto3 to get the connection by email
+# Updated function to use Boto3 to get the latest connection by email without an index
 def get_connection_by_email(logger, endpoint_id: str, email: str) -> Optional[Dict]:
     """
-    Retrieve a connection by email from DynamoDB.
+    Retrieve the latest connection by email from DynamoDB without relying on an index.
 
     Args:
         logger: Logging object
@@ -503,22 +503,30 @@ def get_connection_by_email(logger, endpoint_id: str, email: str) -> Optional[Di
     """
     try:
         table = aws_dynamodb.Table("se-wss-connections")
+
+        # Query without using an index
         response = table.query(
             KeyConditionExpression=Key("endpoint_id").eq(endpoint_id),
             FilterExpression=Attr("data.email").eq(email) & Attr("status").eq("active"),
         )
 
         connections = response.get("Items", [])
-        connection = next(iter(connections), None)
 
-        if connection:
+        # Sort connections manually by 'updated_at' if present
+        latest_connection = None
+        if connections:
+            latest_connection = max(
+                connections,
+                key=lambda conn: conn.get("updated_at", "1970-01-01T00:00:00Z"),
+            )
+
+        if latest_connection:
             return {
-                "connection_id": connection["connection_id"],
-                "data": connection.get("data", {}),
+                "connection_id": latest_connection["connection_id"],
+                "data": latest_connection.get("data", {}),
             }
 
         logger.info(f"No active connection found for email: {email}")
-
         return None
 
     except Exception as e:
@@ -770,7 +778,6 @@ def process_with_agent_uuid(
         receiver_connection = get_connection_by_email(
             info.context.get("logger"),
             info.context.get("endpoint_id"),
-            setting=info.context.get("setting"),
             email=kwargs["receiver_email"],
         )
 
@@ -803,7 +810,7 @@ def process_with_agent_uuid(
         info.context.get("logger"),
         info.context.get("endpoint_id"),
         setting=info.context.get("setting"),
-        connection_id=info.context.get("connectionId"),
+        connection_id=connection_id,
         **variables,
     )
 
@@ -961,7 +968,7 @@ def async_update_coordination_thread_handler(
                 logger,
                 receiver_email=kwargs["receiver_email"],
                 subject="Coordination Thread Update",
-                body=f"The coordination thread with ID {kwargs['thread_id']} has been updated successfully. Last assistant message: {last_message['message']}",
+                body=f"The coordination thread with ID {kwargs['thread_id']} has been updated successfully. Last assistant message: \n\n {last_message['message']}",
             )
 
         return
