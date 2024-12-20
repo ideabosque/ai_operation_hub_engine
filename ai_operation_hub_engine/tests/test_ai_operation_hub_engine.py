@@ -63,6 +63,7 @@ sys.path.insert(3, "C:/Users/bibo7/gitrepo/silvaengine/openai_assistant_engine")
 sys.path.insert(4, "C:/Users/bibo7/gitrepo/silvaengine/silvaengine_dynamodb_base")
 sys.path.insert(5, "C:/Users/bibo7/gitrepo/silvaengine/openai_funct_base")
 sys.path.insert(6, "C:/Users/bibo7/gitrepo/silvaengine/rfq_operation_funct")
+sys.path.insert(7, "C:/Users/bibo7/gitrepo/silvaengine/silvaengine_utility")
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 logger = logging.getLogger()
@@ -88,7 +89,7 @@ class AIOperationHubEngineTest(unittest.TestCase):
         response = self.ai_operation_hub_engine.ai_operation_hub_graphql(**payload)
         logger.info(response)
 
-    # @unittest.skip("demonstrating skipping")
+    @unittest.skip("demonstrating skipping")
     def test_graphql_ask_operation_agent(self):
         payload = {
             "query": document,
@@ -98,8 +99,8 @@ class AIOperationHubEngineTest(unittest.TestCase):
                 # "userQuery": "I would like to submit a RFQ request for a herb weight loss product.",
                 # "userQuery": "Yes, it is good. Plesdr process it.",
                 # "userQuery": "Please create a new one.",
-                "userQuery": "Please ask the provider have the detail of product catalog in Chinese.",
-                "sessionUuid": "17941679905895682543",
+                "userQuery": "Communication! Please ask the provider have the detail of product catalog in Chinese.",
+                "sessionUuid": "581217590704083439",
                 "agentUuid": "14313717474430489072",
                 # "receiverEmail": "bibo72@outlook.com",
                 "receiverEmail": "jng@ingredientsonline.com",
@@ -109,7 +110,7 @@ class AIOperationHubEngineTest(unittest.TestCase):
         response = self.ai_operation_hub_engine.ai_operation_hub_graphql(**payload)
         logger.info(response)
 
-    @unittest.skip("demonstrating skipping")
+    # @unittest.skip("demonstrating skipping")
     def test_graphql_coordination_thread(self):
         payload = {
             "query": document,

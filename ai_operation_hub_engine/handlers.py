@@ -7,7 +7,7 @@ __author__ = "bibow"
 import logging
 import time
 import traceback
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 import boto3
 import humps
@@ -32,217 +32,6 @@ endpoint_id = None
 connection_id = None
 test_mode = None
 ##<--Testing Data-->##
-
-GET_COORDINATION = """fragment CoordinationInfo on CoordinationType {
-    coordinationType
-    coordinationUuid
-    coordinationName
-    coordinationDescription
-    assistantId
-    assistantType
-    additionalInstructions
-    updatedBy
-    createdAt
-    updatedAt
-}
-
-query getCoordination(
-    $coordinationType: String!,
-    $coordinationUuid: String!
-) {
-    coordination(
-        coordinationType: $coordinationType,
-        coordinationUuid: $coordinationUuid
-    ) {
-        ...CoordinationInfo
-    }
-}"""
-
-GET_THREAD = """fragment ThreadInfo on ThreadType {
-    session
-    threadId
-    agent
-    lastAssistantMessage
-    status
-    log
-    createdAt
-    updatedAt
-}
-
-query getThread(
-    $sessionUuid: String!,
-    $threadId: String!
-) {
-    thread(
-        sessionUuid: $sessionUuid,
-        threadId: $threadId
-    ) {
-        ...ThreadInfo
-    }
-}"""
-
-INSERT_UPDATE_COORDINATION_SESSION = """fragment SessionInfo on SessionType {
-    coordination
-    sessionUuid
-    threadIds
-    status
-    notes
-    updatedBy
-    createdAt
-    updatedAt
-}
-
-mutation insertUpdateSession(
-    $coordinationUuid: String!,
-    $sessionUuid: String,
-    $coordinationType: String,
-    $status: String,
-    $notes: String,
-    $updatedBy: String!
-) {
-    insertUpdateSession(
-        coordinationUuid: $coordinationUuid,
-        sessionUuid: $sessionUuid,
-        coordinationType: $coordinationType,
-        status: $status,
-        notes: $notes,
-        updatedBy: $updatedBy
-    ) {
-        session{
-            ...SessionInfo
-        }
-    }
-}"""
-
-INSERT_UPDATE_COORDINATION_THREAD = """fragment ThreadInfo on ThreadType {
-    session
-    threadId
-    agent
-    lastAssistantMessage
-    status
-    log
-    createdAt
-    updatedAt
-}
-
-mutation insertUpdateThread(
-    $sessionUuid: String!,
-    $threadId: String!,
-    $coordinationUuid: String!,
-    $agentUuid: String,
-    $lastAssistantMessage: String,
-    $status: String,
-    $log: String,
-    $updatedBy: String!
-) {
-    insertUpdateThread(
-        sessionUuid: $sessionUuid,
-        threadId: $threadId,
-        coordinationUuid: $coordinationUuid,
-        agentUuid: $agentUuid,
-        lastAssistantMessage: $lastAssistantMessage,
-        status: $status,
-        log: $log,
-        updatedBy: $updatedBy
-    ) {
-        thread{
-            ...ThreadInfo
-        }
-    }
-}"""
-
-ASK_OPENAI = """fragment AskOpenAIInfo on AskOpenAIType {
-    assistantId
-    threadId
-    userQuery
-    functionName
-    taskUuid
-    currentRunId
-}
-
-query askOpenAi(
-    $assistantType: String!,
-    $assistantId: String!,
-    $instructions: String,
-    $additionalInstructions: String,
-    $responseFormat: JSON,
-    $tools: [JSON],
-    $attachments: [JSON],
-    $toolResources: JSON,
-    $threadMetadata: JSON,
-    $messageMetadata: JSON,
-    $userQuery: String!,
-    $updatedBy: String!,
-    $threadId: String
-) {
-    askOpenAi(
-        assistantType: $assistantType,
-        assistantId: $assistantId,
-        instructions: $instructions,
-        additionalInstructions: $additionalInstructions,
-        responseFormat: $responseFormat,
-        tools: $tools,
-        attachments: $attachments,
-        toolResources: $toolResources,
-        threadMetadata: $threadMetadata,
-        messageMetadata: $messageMetadata,
-        userQuery: $userQuery,
-        updatedBy: $updatedBy,
-        threadId: $threadId
-    ) {
-        ...AskOpenAIInfo
-    }
-}"""
-
-GET_LAST_MESSAGE = """fragment LiveMessageInfo on LiveMessageType {
-    threadId
-    runId
-    messageId
-    role
-    message
-    createdAt
-}
-
-query getLastMessage(
-    $assistantId: String,
-    $threadId: String!,
-    $role: String!
-) {
-    lastMessage(
-        assistantId: $assistantId,
-        threadId: $threadId,
-        role: $role
-    ){
-        ...LiveMessageInfo
-    }
-}"""
-
-GET_CURRENT_RUN = """fragment CurrentRunInfo on CurrentRunType {
-    threadId
-    runId
-    status
-    usage
-}
-
-query getCurrentRun(
-    $functionName: String!,
-    $taskUuid: String!,
-    $assistantId: String!,
-    $threadId: String!,
-    $runId: String!,
-    $updatedBy: String!
-) {
-    currentRun(
-        functionName: $functionName,
-        taskUuid: $taskUuid,
-        assistantId: $assistantId,
-        threadId: $threadId,
-        runId: $runId,
-        updatedBy: $updatedBy
-    ){
-        ...CurrentRunInfo
-    }
-}"""
 
 
 def handlers_init(logger: logging.Logger, **setting: Dict[str, Any]) -> None:
@@ -311,89 +100,36 @@ def _initialize_test_data(setting: Dict[str, Any]) -> None:
     ##<--Testing Data-->##
 
 
-def invoke_funct_on_local(
-    logger: logging.Logger,
-    setting: Dict[str, Any],
-    funct: str,
-    **params: Dict[str, Any],
-) -> Dict[str, Any]:
-    try:
-        funct_on_local = setting["functs_on_local"].get(funct)
-        assert funct_on_local is not None, f"Function ({funct}) not found."
-
-        result = Utility.invoke_funct_on_local(
-            logger, funct, funct_on_local, setting, **params
-        )
-        if result is None:
-            return
-
-        result = Utility.json_loads(result)
-        if result.get("errors"):
-            raise Exception(result["errors"])
-
-        return result["data"]
-    except Exception as e:
-        log = traceback.format_exc()
-        logger.error(log)
-        raise e
-
-
-def invoke_funct_on_aws_lambda(
-    logger: logging.Logger,
-    endpoint_id: str,
-    funct: str,
-    params: Dict[str, Any] = {},
-    setting: Dict[str, Any] = None,
-) -> Dict[str, Any]:
-
-    ## Test the waters 🧪 before diving in!
-    ##<--Testing Function-->##
-    if test_mode:
-        if test_mode == "local_for_all":
-            # Jump to the local function if these conditions meet.
-            return invoke_funct_on_local(logger, setting, funct, **params)
-        elif test_mode == "local_for_aws_lambda":  # Test AWS Lambda calls from local.
-            pass
-    ##<--Testing Function-->##
-
-    # If we're at the top-level, let's call the AWS Lambda directly 💻
-    result = Utility.invoke_funct_on_aws_lambda(
-        logger,
-        aws_lambda,
-        **{
-            "endpoint_id": endpoint_id,
-            "funct": funct,
-            "params": params,
-        },
-    )
-    if result is None or result == "null":
-        return
-
-    result = Utility.json_loads(Utility.json_loads(result))
-    if result.get("errors"):
-        raise Exception(result["errors"])
-
-    return result["data"]
-
-
 def execute_graphql_query(
     logger: logging.Logger,
     endpoint_id: str,
-    funct: str,
-    query: str,
-    variables: Dict[str, Any] = {},
-    setting: Dict[str, Any] = None,
+    function_name: str,
+    operation_name: str,
+    operation_type: str,
+    variables: Dict[str, Any],
+    setting: Dict[str, Any] = {},
     connection_id: str = None,
 ) -> Dict[str, Any]:
-    params = {
-        "query": query,
-        "variables": variables,
-        "connection_id": connection_id,
-    }
-
-    return invoke_funct_on_aws_lambda(
-        logger, endpoint_id, funct, params=params, setting=setting
+    schema = Utility.fetch_graphql_schema(
+        logger,
+        endpoint_id,
+        function_name,
+        setting=setting,
+        aws_lambda=aws_lambda,
+        test_mode=test_mode,
     )
+    result = Utility.execute_graphql_query(
+        logger,
+        endpoint_id,
+        function_name,
+        Utility.generate_graphql_operation(operation_name, operation_type, schema),
+        variables,
+        setting=setting,
+        aws_lambda=aws_lambda,
+        connection_id=connection_id,
+        test_mode=test_mode,
+    )
+    return result
 
 
 def get_coordination(
@@ -407,7 +143,8 @@ def get_coordination(
         logger,
         endpoint_id,
         "ai_coordination_graphql",
-        GET_COORDINATION,
+        "coordination",
+        "Query",
         variables,
         setting=setting,
     )["coordination"]
@@ -425,7 +162,8 @@ def get_coordination_thread(
         logger,
         endpoint_id,
         "ai_coordination_graphql",
-        GET_THREAD,
+        "thread",
+        "Query",
         variables,
         setting=setting,
     )["thread"]
@@ -444,7 +182,8 @@ def get_ask_openai(
         logger,
         endpoint_id,
         "openai_assistant_graphql",
-        ASK_OPENAI,
+        "askOpenAi",
+        "Query",
         variables,
         setting=setting,
         connection_id=connection_id,
@@ -463,7 +202,8 @@ def get_current_run(
         logger,
         endpoint_id,
         "openai_assistant_graphql",
-        GET_CURRENT_RUN,
+        "currentRun",
+        "Query",
         variables,
         setting=setting,
     )["currentRun"]
@@ -481,7 +221,8 @@ def get_last_message(
         logger,
         endpoint_id,
         "openai_assistant_graphql",
-        GET_LAST_MESSAGE,
+        "lastMessage",
+        "Query",
         variables,
         setting=setting,
     )["lastMessage"]
@@ -568,7 +309,8 @@ def insert_update_coordination_session(
         logger,
         endpoint_id,
         "ai_coordination_graphql",
-        INSERT_UPDATE_COORDINATION_SESSION,
+        "insertUpdateSession",
+        "Mutation",
         variables,
         setting=setting,
     )["insertUpdateSession"]["session"]
@@ -586,7 +328,8 @@ def insert_update_coordination_thread(
         logger,
         endpoint_id,
         "ai_coordination_graphql",
-        INSERT_UPDATE_COORDINATION_THREAD,
+        "insertUpdateThread",
+        "Mutation",
         variables,
         setting=setting,
     )["insertUpdateThread"]["thread"]
@@ -678,7 +421,7 @@ def process_no_agent_uuid(
     ## Update the last assistant message in coordination thread.
     ## Update the status to be 'assigned' or 'unassigned'.
 
-    invoke_funct_on_aws_lambda(
+    Utility.invoke_funct_on_aws_lambda(
         info.context.get("logger"),
         info.context.get("endpoint_id"),
         "async_update_coordination_thread",
@@ -694,6 +437,8 @@ def process_no_agent_uuid(
             "run_id": ask_openai["current_run_id"],
         },
         setting=info.context.get("setting"),
+        test_mode=test_mode,
+        aws_lambda=aws_lambda,
     )
 
     return AskOperationAgentType(
@@ -848,12 +593,14 @@ def process_with_agent_uuid(
     if connection_id is None and "receiver_email" in kwargs:
         params["receiver_email"] = kwargs["receiver_email"]
 
-    invoke_funct_on_aws_lambda(
+    Utility.invoke_funct_on_aws_lambda(
         info.context.get("logger"),
         info.context.get("endpoint_id"),
         "async_update_coordination_thread",
         params=params,
         setting=info.context.get("setting"),
+        test_mode=test_mode,
+        aws_lambda=aws_lambda,
     )
 
     return AskOperationAgentType(
