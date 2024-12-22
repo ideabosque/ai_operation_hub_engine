@@ -20,11 +20,12 @@ from .types import AskOperationAgentType, CoordinationThreadType
 
 functs_on_local = None
 funct_on_local_config = None
-graphql_documents = None
 aws_lambda = None
 aws_dynamodb = None
 aws_ses = None
 source_email = None
+ai_coordination_schema = None
+openai_assistant_schema = None
 
 ## Test the waters 🧪 before diving in!
 ##<--Testing Data-->##
@@ -100,6 +101,41 @@ def _initialize_test_data(setting: Dict[str, Any]) -> None:
     ##<--Testing Data-->##
 
 
+def fetch_graphql_schema(
+    logger: logging.Logger,
+    endpoint_id: str,
+    function_name: str,
+    setting: Dict[str, Any] = None,
+) -> Dict[str, Any]:
+    global ai_coordination_schema, openai_assistant_schema
+
+    if function_name == "ai_coordination_graphql":
+        if ai_coordination_schema is None:
+            ai_coordination_schema = Utility.fetch_graphql_schema(
+                logger,
+                endpoint_id,
+                function_name,
+                setting=setting,
+                aws_lambda=aws_lambda,
+                test_mode=test_mode,
+            )
+        return ai_coordination_schema
+
+    if function_name == "openai_assistant_graphql":
+        if openai_assistant_schema is None:
+            openai_assistant_schema = Utility.fetch_graphql_schema(
+                logger,
+                endpoint_id,
+                function_name,
+                setting=setting,
+                aws_lambda=aws_lambda,
+                test_mode=test_mode,
+            )
+        return openai_assistant_schema
+
+    raise Exception(f"Invalid function name ({function_name}).")
+
+
 def execute_graphql_query(
     logger: logging.Logger,
     endpoint_id: str,
@@ -110,14 +146,7 @@ def execute_graphql_query(
     setting: Dict[str, Any] = {},
     connection_id: str = None,
 ) -> Dict[str, Any]:
-    schema = Utility.fetch_graphql_schema(
-        logger,
-        endpoint_id,
-        function_name,
-        setting=setting,
-        aws_lambda=aws_lambda,
-        test_mode=test_mode,
-    )
+    schema = fetch_graphql_schema(logger, endpoint_id, function_name, setting=setting)
     result = Utility.execute_graphql_query(
         logger,
         endpoint_id,
