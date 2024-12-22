@@ -24,8 +24,7 @@ aws_lambda = None
 aws_dynamodb = None
 aws_ses = None
 source_email = None
-ai_coordination_schema = None
-openai_assistant_schema = None
+schemas = {}
 
 ## Test the waters 🧪 before diving in!
 ##<--Testing Data-->##
@@ -107,33 +106,18 @@ def fetch_graphql_schema(
     function_name: str,
     setting: Dict[str, Any] = None,
 ) -> Dict[str, Any]:
-    global ai_coordination_schema, openai_assistant_schema
+    global schemas
 
-    if function_name == "ai_coordination_graphql":
-        if ai_coordination_schema is None:
-            ai_coordination_schema = Utility.fetch_graphql_schema(
-                logger,
-                endpoint_id,
-                function_name,
-                setting=setting,
-                aws_lambda=aws_lambda,
-                test_mode=test_mode,
-            )
-        return ai_coordination_schema
-
-    if function_name == "openai_assistant_graphql":
-        if openai_assistant_schema is None:
-            openai_assistant_schema = Utility.fetch_graphql_schema(
-                logger,
-                endpoint_id,
-                function_name,
-                setting=setting,
-                aws_lambda=aws_lambda,
-                test_mode=test_mode,
-            )
-        return openai_assistant_schema
-
-    raise Exception(f"Invalid function name ({function_name}).")
+    if schemas.get(function_name) is None:
+        schemas[function_name] = Utility.fetch_graphql_schema(
+            logger,
+            endpoint_id,
+            function_name,
+            setting=setting,
+            aws_lambda=aws_lambda,
+            test_mode=test_mode,
+        )
+    return schemas[function_name]
 
 
 def execute_graphql_query(
