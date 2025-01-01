@@ -49,12 +49,12 @@ class Query(ObjectType):
 
     def resolve_ask_operation_agent(
         self, info: ResolveInfo, **kwargs: Dict[str, Any]
-    ) -> "AskOperationAgentType":
+    ) -> AskOperationAgentType:
         return resolve_ask_operation_agent(info, **kwargs)
 
     def resolve_coordination_thread(
         self, info: ResolveInfo, **kwargs: Dict[str, Any]
-    ) -> "CoordinationThreadType":
+    ) -> CoordinationThreadType:
         return resolve_coordination_thread(info, **kwargs)
 
 
