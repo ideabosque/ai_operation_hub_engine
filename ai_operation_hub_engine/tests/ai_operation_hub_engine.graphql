@@ -2,7 +2,6 @@ fragment AskOperationAgentInfo on AskOperationAgentType {
     coordination
     sessionUuid
     threadId
-    agentUuid
     agentName
     lastAssistantMessage
     status
@@ -12,7 +11,6 @@ fragment AskOperationAgentInfo on AskOperationAgentType {
 fragment CoordinationThreadInfo on CoordinationThreadType {
     sessionUuid
     threadId
-    agentUuid
     agentName
     lastAssistantMessage
     status
@@ -24,19 +22,17 @@ query ping {
 }
 
 query getAskOperationAgent(
-    $coordinationType: String!,
     $coordinationUuid: String!,
     $userQuery: String!,
     $sessionUuid: String,
-    $agentUuid: String,
+    $agentName: String,
     $receiverEmail: String
 ) {
     askOperationAgent(
-        coordinationType: $coordinationType,
         coordinationUuid: $coordinationUuid,
         userQuery: $userQuery,
         sessionUuid: $sessionUuid,
-        agentUuid: $agentUuid,
+        agentName: $agentName,
         receiverEmail: $receiverEmail
     ) {
         ...AskOperationAgentInfo

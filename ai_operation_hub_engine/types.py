@@ -24,7 +24,6 @@ class AskOperationAgentType(ObjectType):
     coordination = JSON()
     session_uuid = String()
     thread_id = String()
-    agent_uuid = String()
     agent_name = String()
     last_assistant_message = String()
     status = String()
@@ -34,7 +33,6 @@ class AskOperationAgentType(ObjectType):
 class CoordinationThreadType(ObjectType):
     session_uuid = String()
     thread_id = String()
-    agent_uuid = String()
     agent_name = String()
     last_assistant_message = String()
     status = String()

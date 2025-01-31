@@ -349,10 +349,10 @@ def insert_update_coordination_thread(
     return humps.decamelize(coordination_thread)
 
 
-def process_no_agent_uuid(
+def process_no_agent_name(
     info: ResolveInfo, **kwargs: Dict[str, Any]
 ) -> AskOperationAgentType:
-    """Handle case when agent_uuid is not provided."""
+    """Handle case when agent_name is not provided."""
     if kwargs.get("session_uuid"):
         coordination_session = insert_update_coordination_session(
             info.context.get("logger"),
@@ -378,7 +378,6 @@ def process_no_agent_uuid(
             info.context.get("endpoint_id"),
             setting=info.context.get("setting"),
             **{
-                "coordinationType": kwargs["coordination_type"],
                 "coordinationUuid": kwargs["coordination_uuid"],
             },
         )
@@ -388,12 +387,10 @@ def process_no_agent_uuid(
             setting=info.context.get("setting"),
             **{
                 "coordinationUuid": coordination["coordination_uuid"],
-                "coordinationType": coordination["coordination_type"],
                 "updatedBy": "AI Operation Hub",
             },
         )
         variables = {
-            "assistantType": coordination_session["coordination"]["assistant_type"],
             "assistantId": coordination_session["coordination"]["assistant_id"],
             "userQuery": f"Please allocate the assigned agent for the user's query ({kwargs['user_query']}) with coordination_uuid ({kwargs['coordination_uuid']}).",
             "updatedBy": "AI Operation Hub",
@@ -416,7 +413,7 @@ def process_no_agent_uuid(
     if coordination_session["status"] == "in_transit":
         variables.update(
             {
-                "agentUuid": "null",
+                "agentName": "null",
                 "lastAssistantMessage": "null",
                 "status": "initial",
                 "log": "null",
@@ -458,11 +455,6 @@ def process_no_agent_uuid(
         coordination=coordination_session["coordination"],
         session_uuid=coordination_session["session_uuid"],
         thread_id=coordination_thread["thread_id"],
-        agent_uuid=(
-            coordination_thread["agent"]["agent_uuid"]
-            if coordination_thread["agent"] is not None
-            else None
-        ),
         agent_name=(
             coordination_thread["agent"]["agent_name"]
             if coordination_thread["agent"] is not None
@@ -474,10 +466,10 @@ def process_no_agent_uuid(
     )
 
 
-def process_with_agent_uuid(
+def process_with_agent_name(
     info: ResolveInfo, **kwargs: Dict[str, Any]
 ) -> AskOperationAgentType:
-    """Handle case when agent_uuid is provided."""
+    """Handle case when agent_name is provided."""
     variables = {
         "coordinationUuid": kwargs["coordination_uuid"],
         "sessionUuid": kwargs["session_uuid"],
@@ -509,7 +501,7 @@ def process_with_agent_uuid(
             "coordinationUuid": coordination_session["coordination"][
                 "coordination_uuid"
             ],
-            "agentUuid": kwargs["agent_uuid"],
+            "agentName": kwargs["agent_name"],
             "status": "assigned",
             "log": "null",
             "updatedBy": "AI Operation Hub",
@@ -522,7 +514,7 @@ def process_with_agent_uuid(
         )
 
     variables = {
-        "assistantType": coordination_session["coordination"]["assistant_type"],
+        # "assistantType": coordination_session["coordination"]["assistant_type"],
         "assistantId": coordination_session["coordination"]["assistant_id"],
         "threadId": coordination_thread["thread_id"],
         "userQuery": kwargs["user_query"],
@@ -594,7 +586,7 @@ def process_with_agent_uuid(
     params = {
         "session_uuid": coordination_session["session_uuid"],
         "coordination_uuid": coordination_session["coordination"]["coordination_uuid"],
-        "agent_uuid": kwargs["agent_uuid"],
+        "agent_name": kwargs["agent_name"],
         "function_name": ask_openai["function_name"],
         "task_uuid": ask_openai["task_uuid"],
         "assistant_id": coordination_session["coordination"]["assistant_id"],
@@ -620,11 +612,6 @@ def process_with_agent_uuid(
         coordination=coordination_session["coordination"],
         session_uuid=coordination_session["session_uuid"],
         thread_id=coordination_thread["thread_id"],
-        agent_uuid=(
-            coordination_thread["agent"]["agent_uuid"]
-            if coordination_thread["agent"] is not None
-            else None
-        ),
         agent_name=(
             coordination_thread["agent"]["agent_name"]
             if coordination_thread["agent"] is not None
@@ -689,10 +676,10 @@ def async_update_coordination_thread_handler(
             "updatedBy": "AI Operation Hub",
         }
 
-        if "agent_uuid" in kwargs:
+        if "agent_name" in kwargs:
             variables.update(
                 {
-                    "agentUuid": kwargs["agent_uuid"],
+                    "agentName": kwargs["agent_name"],
                     "lastAssistantMessage": last_message["message"],
                     "status": "completed",
                 }
@@ -701,8 +688,8 @@ def async_update_coordination_thread_handler(
             response = Utility.json_loads(last_message["message"])
             variables.update(
                 {
-                    "agentUuid": (
-                        response["agent_uuid"]
+                    "agentName": (
+                        response["agent_name"]
                         if response["status"] == "assigned"
                         else None
                     ),
@@ -766,10 +753,10 @@ def resolve_ask_operation_agent_handler(
             info.context["endpoint_id"] = endpoint_id
         ##<--Testing Data-->##
 
-        if not kwargs.get("agent_uuid"):
-            return process_no_agent_uuid(info, **kwargs)
+        if "agent_name" in kwargs:
+            return process_with_agent_name(info, **kwargs)
         else:
-            return process_with_agent_uuid(info, **kwargs)
+            return process_no_agent_name(info, **kwargs)
 
     except Exception as e:
         log = traceback.format_exc()
@@ -794,11 +781,6 @@ def resolve_coordination_thread_handler(
         return CoordinationThreadType(
             session_uuid=coordination_thread["session"]["session_uuid"],
             thread_id=coordination_thread["thread_id"],
-            agent_uuid=(
-                coordination_thread["agent"]["agent_uuid"]
-                if coordination_thread["agent"] is not None
-                else None
-            ),
             agent_name=(
                 coordination_thread["agent"]["agent_name"]
                 if coordination_thread["agent"] is not None
