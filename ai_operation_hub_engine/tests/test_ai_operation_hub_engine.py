@@ -56,14 +56,14 @@ setting = {
 document = Path(
     os.path.join(os.path.dirname(__file__), "ai_operation_hub_engine.graphql")
 ).read_text()
-sys.path.insert(0, "C:/Users/bibo7/gitrepo/silvaengine/ai_operation_hub_engine")
-sys.path.insert(1, "C:/Users/bibo7/gitrepo/silvaengine/silvaengine_dynamodb_base")
-sys.path.insert(2, "C:/Users/bibo7/gitrepo/silvaengine/ai_coordination_engine")
-sys.path.insert(3, "C:/Users/bibo7/gitrepo/silvaengine/openai_assistant_engine")
-sys.path.insert(4, "C:/Users/bibo7/gitrepo/silvaengine/silvaengine_dynamodb_base")
-sys.path.insert(5, "C:/Users/bibo7/gitrepo/silvaengine/openai_funct_base")
-sys.path.insert(6, "C:/Users/bibo7/gitrepo/silvaengine/rfq_operation_funct")
-sys.path.insert(7, "C:/Users/bibo7/gitrepo/silvaengine/silvaengine_utility")
+sys.path.insert(0, f"{os.getenv('base_dir')}/ai_operation_hub_engine")
+sys.path.insert(1, f"{os.getenv('base_dir')}/silvaengine_dynamodb_base")
+sys.path.insert(2, f"{os.getenv('base_dir')}/ai_coordination_engine")
+sys.path.insert(3, f"{os.getenv('base_dir')}/openai_assistant_engine")
+sys.path.insert(4, f"{os.getenv('base_dir')}/silvaengine_dynamodb_base")
+sys.path.insert(5, f"{os.getenv('base_dir')}/openai_funct_base")
+sys.path.insert(6, f"{os.getenv('base_dir')}/rfq_operation_funct")
+sys.path.insert(7, f"{os.getenv('base_dir')}/silvaengine_utility")
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 logger = logging.getLogger()
@@ -89,7 +89,7 @@ class AIOperationHubEngineTest(unittest.TestCase):
         response = self.ai_operation_hub_engine.ai_operation_hub_graphql(**payload)
         logger.info(response)
 
-    @unittest.skip("demonstrating skipping")
+    # @unittest.skip("demonstrating skipping")
     def test_graphql_ask_operation_agent(self):
         payload = {
             "query": document,
@@ -100,17 +100,17 @@ class AIOperationHubEngineTest(unittest.TestCase):
                 # "userQuery": "Yes, it is good. Plesdr process it.",
                 # "userQuery": "Please create a new one.",
                 "userQuery": "Communication! Please ask the provider have the detail of product catalog in Chinese.",
-                "sessionUuid": "581217590704083439",
-                "agentUuid": "14313717474430489072",
-                # "receiverEmail": "bibo72@outlook.com",
-                "receiverEmail": "jng@ingredientsonline.com",
+                "sessionUuid": "12751094397555970543",
+                "agentName": "B2B AI Communication Assistant",
+                "receiverEmail": "bibo72@outlook.com",
+                # "receiverEmail": "jng@ingredientsonline.com",
             },
             "operation_name": "getAskOperationAgent",
         }
         response = self.ai_operation_hub_engine.ai_operation_hub_graphql(**payload)
         logger.info(response)
 
-    # @unittest.skip("demonstrating skipping")
+    @unittest.skip("demonstrating skipping")
     def test_graphql_coordination_thread(self):
         payload = {
             "query": document,
