@@ -26,22 +26,13 @@ aws_ses = None
 source_email = None
 schemas = {}
 
-## Test the waters 🧪 before diving in!
-##<--Testing Data-->##
-endpoint_id = None
-connection_id = None
-test_mode = None
-##<--Testing Data-->##
-
 
 def handlers_init(logger: logging.Logger, **setting: Dict[str, Any]) -> None:
     global functs_on_local, aws_lambda, aws_dynamodb, aws_ses, source_email
-    global endpoint_id, connection_id, test_mode
     try:
         _initialize_functs_on_local(setting)
         _initialize_aws_clients(setting)
         _initialize_source_email(setting)
-        _initialize_test_data(setting)
     except Exception as e:
         log = traceback.format_exc()
         logger.error(log)
@@ -89,22 +80,11 @@ def _initialize_source_email(setting: Dict[str, Any]) -> None:
     source_email = setting.get("source_email")
 
 
-def _initialize_test_data(setting: Dict[str, Any]) -> None:
-    global endpoint_id, connection_id, test_mode
-
-    ## Test the waters 🧪 before diving in!
-    ##<--Testing Data-->##
-    endpoint_id = setting.get("endpoint_id")
-    connection_id = setting.get("connection_id")
-    test_mode = setting.get("test_mode")
-    ##<--Testing Data-->##
-
-
 def fetch_graphql_schema(
     logger: logging.Logger,
     endpoint_id: str,
     function_name: str,
-    setting: Dict[str, Any] = None,
+    setting: Dict[str, Any] = {},
 ) -> Dict[str, Any]:
     global schemas
 
@@ -115,7 +95,7 @@ def fetch_graphql_schema(
             function_name,
             setting=setting,
             aws_lambda=aws_lambda,
-            test_mode=test_mode,
+            test_mode=setting.get("test_mode"),
         )
     return schemas[function_name]
 
@@ -140,7 +120,7 @@ def execute_graphql_query(
         setting=setting,
         aws_lambda=aws_lambda,
         connection_id=connection_id,
-        test_mode=test_mode,
+        test_mode=setting.get("test_mode"),
     )
     return result
 
@@ -447,7 +427,7 @@ def process_no_agent_name(
             "run_id": ask_openai["current_run_id"],
         },
         setting=info.context.get("setting"),
-        test_mode=test_mode,
+        test_mode=info.context.get("setting").get("test_mode"),
         aws_lambda=aws_lambda,
     )
 
@@ -604,7 +584,7 @@ def process_with_agent_name(
         "async_update_coordination_thread",
         params=params,
         setting=info.context.get("setting"),
-        test_mode=test_mode,
+        test_mode=info.context.get("setting").get("test_mode"),
         aws_lambda=aws_lambda,
     )
 
@@ -744,15 +724,6 @@ def resolve_ask_operation_agent_handler(
     info: ResolveInfo, **kwargs: Dict[str, Any]
 ) -> AskOperationAgentType:
     try:
-        ## Test the waters 🧪 before diving in!
-        ##<--Testing Data-->##
-        global connection_id, endpoint_id
-        if info.context.get("connectionId") is None:
-            info.context["connectionId"] = connection_id
-        if info.context.get("endpoint_id") is None:
-            info.context["endpoint_id"] = endpoint_id
-        ##<--Testing Data-->##
-
         if "agent_name" in kwargs:
             return process_with_agent_name(info, **kwargs)
         else:

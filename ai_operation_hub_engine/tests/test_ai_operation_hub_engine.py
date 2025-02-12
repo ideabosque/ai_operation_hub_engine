@@ -94,13 +94,13 @@ class AIOperationHubEngineTest(unittest.TestCase):
         payload = {
             "query": document,
             "variables": {
-                "coordinationType": "operation",
+                # "coordinationType": "operation",
                 "coordinationUuid": "1057228940262445551",
                 # "userQuery": "I would like to submit a RFQ request for a herb weight loss product.",
                 # "userQuery": "Yes, it is good. Plesdr process it.",
                 # "userQuery": "Please create a new one.",
                 "userQuery": "Communication! Please ask the provider have the detail of product catalog in Chinese.",
-                "sessionUuid": "12751094397555970543",
+                "sessionUuid": "12514507597382750703",
                 "agentName": "B2B AI Communication Assistant",
                 "receiverEmail": "bibo72@outlook.com",
                 # "receiverEmail": "jng@ingredientsonline.com",
