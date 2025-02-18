@@ -340,16 +340,15 @@ def process_no_agent_name(
             setting=info.context.get("setting"),
             **{
                 "coordinationUuid": kwargs["coordination_uuid"],
-                "session_uuid": kwargs["session_uuid"],
+                "sessionUuid": kwargs["session_uuid"],
                 "status": "in_transit",
                 "updatedBy": "AI Operation Hub",
             },
         )
         variables = {
-            "assistantType": coordination_session["coordination"]["assistant_type"],
             "assistantId": coordination_session["coordination"]["assistant_id"],
             "threadId": coordination_session["thread_ids"][0],
-            "userQuery": kwargs["user_query"],
+            "userQuery": f"Please allocate the assigned agent for the user's query ({kwargs['user_query']}) with coordination_uuid ({kwargs['coordination_uuid']}).",
             "updatedBy": "AI Operation Hub",
         }
     else:
@@ -440,9 +439,7 @@ def process_no_agent_name(
             if coordination_thread["agent"] is not None
             else None
         ),
-        last_assistant_message=coordination_thread["last_assistant_message"],
         status=coordination_thread["status"],
-        log=coordination_thread["log"],
     )
 
 
@@ -494,7 +491,6 @@ def process_with_agent_name(
         )
 
     variables = {
-        # "assistantType": coordination_session["coordination"]["assistant_type"],
         "assistantId": coordination_session["coordination"]["assistant_id"],
         "threadId": coordination_thread["thread_id"],
         "userQuery": kwargs["user_query"],
@@ -597,9 +593,7 @@ def process_with_agent_name(
             if coordination_thread["agent"] is not None
             else None
         ),
-        last_assistant_message=coordination_thread["last_assistant_message"],
         status=coordination_thread["status"],
-        log=coordination_thread["log"],
     )
 
 

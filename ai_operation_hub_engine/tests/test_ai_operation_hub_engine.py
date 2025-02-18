@@ -94,13 +94,12 @@ class AIOperationHubEngineTest(unittest.TestCase):
         payload = {
             "query": document,
             "variables": {
-                # "coordinationType": "operation",
                 "coordinationUuid": "1057228940262445551",
                 # "userQuery": "I would like to submit a RFQ request for a herb weight loss product.",
                 # "userQuery": "Yes, it is good. Plesdr process it.",
                 # "userQuery": "Please create a new one.",
                 "userQuery": "Communication! Please ask the provider have the detail of product catalog in Chinese.",
-                "sessionUuid": "12514507597382750703",
+                "sessionUuid": "13031224379721847279",
                 "agentName": "B2B AI Communication Assistant",
                 "receiverEmail": "bibo72@outlook.com",
                 # "receiverEmail": "jng@ingredientsonline.com",
@@ -115,8 +114,8 @@ class AIOperationHubEngineTest(unittest.TestCase):
         payload = {
             "query": document,
             "variables": {
-                "sessionUuid": "703405286767202799",
-                "threadId": "thread_ycVIl5M2Ofku40y3PTSN0nZ3",
+                "sessionUuid": "13031224379721847279",
+                "threadId": "thread_Nu0t7uw6uqgpOshM2t9dcOLV",
             },
             "operation_name": "getCoordinationThread",
         }

@@ -3,9 +3,7 @@ fragment AskOperationAgentInfo on AskOperationAgentType {
     sessionUuid
     threadId
     agentName
-    lastAssistantMessage
     status
-    log
 }
 
 fragment CoordinationThreadInfo on CoordinationThreadType {
