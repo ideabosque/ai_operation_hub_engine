@@ -144,6 +144,25 @@ def get_coordination(
     return humps.decamelize(coordination)
 
 
+def get_agent(
+    logger: logging.Logger,
+    endpoint_id: str,
+    setting: Dict[str, Any] = None,
+    **variables: Dict[str, Any],
+) -> Dict[str, Any]:
+    """Retrieve agent details."""
+    agent = execute_graphql_query(
+        logger,
+        endpoint_id,
+        "ai_coordination_graphql",
+        "agent",
+        "Query",
+        variables,
+        setting=setting,
+    )["agent"]
+    return humps.decamelize(agent)
+
+
 def get_coordination_thread(
     logger: logging.Logger,
     endpoint_id: str,
@@ -449,10 +468,15 @@ def process_with_agent_name(
     """Handle case when agent_name is provided."""
     variables = {
         "coordinationUuid": kwargs["coordination_uuid"],
-        "sessionUuid": kwargs["session_uuid"],
-        "status": "active",
         "updatedBy": "AI Operation Hub",
     }
+    if "session_uuid" in kwargs:
+        variables.update(
+            {
+                "sessionUuid": kwargs["session_uuid"],
+                "status": "active",
+            }
+        )
 
     coordination_session = insert_update_coordination_session(
         info.context.get("logger"),
@@ -461,41 +485,55 @@ def process_with_agent_name(
         **variables,
     )
 
-    coordination_thread = get_coordination_thread(
-        info.context.get("logger"),
-        info.context.get("endpoint_id"),
-        setting=info.context.get("setting"),
-        **{
-            "sessionUuid": kwargs["session_uuid"],
-            "threadId": coordination_session["thread_ids"][0],
-        },
-    )
-
-    if coordination_thread["status"] != "assigned":
-        variables = {
-            "sessionUuid": kwargs["session_uuid"],
-            "threadId": coordination_session["thread_ids"][0],
-            "coordinationUuid": coordination_session["coordination"][
-                "coordination_uuid"
-            ],
-            "agentName": kwargs["agent_name"],
-            "status": "assigned",
-            "log": "null",
-            "updatedBy": "AI Operation Hub",
-        }
-        coordination_thread = insert_update_coordination_thread(
-            info.context.get("logger"),
-            info.context.get("endpoint_id"),
-            setting=info.context.get("setting"),
-            **variables,
-        )
-
     variables = {
         "assistantId": coordination_session["coordination"]["assistant_id"],
-        "threadId": coordination_thread["thread_id"],
         "userQuery": kwargs["user_query"],
         "updatedBy": "AI Operation Hub",
     }
+
+    coordination_thread = None
+    agent = None
+    if "session_uuid" in kwargs:
+        coordination_thread = get_coordination_thread(
+            info.context.get("logger"),
+            info.context.get("endpoint_id"),
+            setting=info.context.get("setting"),
+            **{
+                "sessionUuid": coordination_session["session_uuid"],
+                "threadId": coordination_session["thread_ids"][0],
+            },
+        )
+        variables["threadId"] = coordination_thread["thread_id"]
+        agent = coordination_thread.get("agent", {})
+
+        if coordination_thread["status"] != "assigned":
+            variables = {
+                "sessionUuid": coordination_session["session_uuid"],
+                "threadId": coordination_session["thread_ids"][0],
+                "coordinationUuid": coordination_session["coordination"][
+                    "coordination_uuid"
+                ],
+                "agentName": kwargs["agent_name"],
+                "status": "assigned",
+                "log": "null",
+                "updatedBy": "AI Operation Hub",
+            }
+            coordination_thread = insert_update_coordination_thread(
+                info.context.get("logger"),
+                info.context.get("endpoint_id"),
+                setting=info.context.get("setting"),
+                **variables,
+            )
+    else:
+        agent = get_agent(
+            info.context.get("logger"),
+            info.context.get("endpoint_id"),
+            setting=info.context.get("setting"),
+            **{
+                "coordinationUuid": kwargs["coordination_uuid"],
+                "agentName": kwargs["agent_name"],
+            },
+        )
 
     # New logic to handle receiver_email
     connection_id = info.context.get("connectionId")
@@ -510,7 +548,6 @@ def process_with_agent_name(
         if receiver_connection:
             connection_id = receiver_connection.get("connection_id", connection_id)
 
-    agent = coordination_thread.get("agent", {})
     if agent.get("agent_instructions"):
         variables["instructions"] = agent["agent_instructions"]
     if agent.get("response_format"):
@@ -548,6 +585,8 @@ def process_with_agent_name(
         "status": "dispatched",
         "updatedBy": "AI Operation Hub",
     }
+    if coordination_thread is None:
+        variables["agentName"] = agent["agent_name"]
     coordination_thread = insert_update_coordination_thread(
         info.context.get("logger"),
         info.context.get("endpoint_id"),
